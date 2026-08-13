@@ -270,24 +270,19 @@ class ItemTabController<T : TSModel>(val leftRepo: DataRepo<T>, val rightRepo: D
         }
     }
 
-    fun deleteRightItems(selectedItems: Sequence<Pair<T?, T?>>) {
-        val notifyIds = mutableMapOf<Int, Pair<T?, T?>>()
-        selectedItems.forEach {
-            val leftItem = it.first
-            val rightItem = it.second
-            if (rightItem != null) {
-                val notifyIdx = observableList.indexOfFirst { pair ->
-                    pair.second?.id == rightItem.id
-                }
-                if (notifyIdx > -1) {
-                    notifyIds[notifyIdx] = Pair(leftItem, null)
-                }
+// HÀM XÓA VẬT PHẨM HOÀN TOÀN KHỎI HỆ THỐNG
+    fun deleteItem(selectedItems: Sequence<Pair<T?, T?>>) {
+        // Chuyển sang dạng List để tránh lỗi xung đột khi vừa duyệt vừa xóa
+        val itemsToRemove = selectedItems.toList() 
+        itemsToRemove.forEach { pair ->
+            val item = pair.first
+            if (item != null) {
+                // Xóa tận gốc khỏi bộ nhớ lưu file
+                leftData.remove(item)
+                // Xóa khỏi lưới hiển thị trên giao diện
+                observableList.remove(pair)
             }
         }
-        notifyIds.forEach { idx, pairItems ->
-            observableList[idx] = pairItems
-        }
     }
-}
 
 fun String.isNumber(): Boolean = toIntOrNull() != null
