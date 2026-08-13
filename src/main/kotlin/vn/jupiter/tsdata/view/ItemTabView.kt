@@ -206,11 +206,12 @@ class ItemTabView<T : TSModel>(val controller: ItemTabController<T>) : View() {
                     }
                 }
 
-                item("Delete") {
+                item("Delete (Remove Row)") {
                     action {
-                        if (selectionModel.selectedCells.count() > 0) {
+                        if (selectionModel.selectedItems.isNotEmpty()) {
                             val selectedItems = selectionModel.selectedItems.asSequence()
-                            controller.deleteRightItems(selectedItems)
+                            controller.deleteItem(selectedItems)
+                            dataTableView?.refresh() // Ép giao diện làm mới ngay lập tức
                         }
                     }
                 }
