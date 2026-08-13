@@ -8,11 +8,8 @@ import java.util.regex.Pattern
 import javax.xml.stream.events.Characters
 import kotlin.experimental.and
 
-/**
- * Created by jupiter on 5/25/17.
- */
 sealed class TSModel(val byteData: ByteBuffer, val itemSize: Int, val charset: Charset = Charset.forName("Big5")) {
-    var id: Int = -1
+    open var id: Int = -1
     open var name: String = ""
         set(value) {
             if (!value.contentEquals(field)) {
@@ -38,15 +35,21 @@ sealed class TSModel(val byteData: ByteBuffer, val itemSize: Int, val charset: C
     open var descSizeIdx = -1
     open var descLength: Int = -1
 
-
-    //    protected val namePattern = Pattern.compile("(\\w|\\s|[.\\[\\]\\?\\*])+")
     companion object {
         val VISCII = arrayOf(128, 132, 192, 193, 194, 195, 196, 197, 141, 142, 200, 201, 202, 203, 204, 205, 206, 144, 145, 179, 180, 210, 211, 212, 157, 158, 185, 186, 187, 188, 217, 218, 159, 161, 162, 163, 164, 165, 166, 167, 198, 199, 213, 224, 225, 226, 227, 228, 229, 230, 231, 168, 169, 170, 171, 172, 173, 174, 232, 233, 234, 235, 184, 236, 237, 238, 239, 175, 176, 177, 178, 181, 182, 183, 189, 190, 222, 242, 243, 244, 245, 246, 247, 254, 209, 215, 216, 223, 241, 248, 249, 250, 251, 252, 255, 207, 214, 219, 220, 253, 208, 240)
         val ASCII = arrayOf(65, 65, 65, 65, 65, 65, 65, 65, 69, 69, 69, 69, 69, 69, 73, 73, 73, 79, 79, 79, 79, 79, 79, 79, 85, 85, 85, 85, 85, 85, 85, 85, 89, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 117, 97, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 105, 105, 105, 105, 105, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 121, 121, 121, 121, 121, 68, 100)
     }
 
     init {
+    }
 
+    // HÀM LƯU ID ĐƯỢC CHỈNH SỬA
+    open fun saveId(newId: Int) {
+    }
+
+    fun saveShort(value: Int, start: Int) {
+        byteData.put(start, (value and 0xFF).toByte())
+        byteData.put(start + 1, ((value ushr 8) and 0xFF).toByte())
     }
 
     fun readString(start: Int, lengthInBytes: Int, isReverse: Boolean = true): String {
@@ -158,11 +161,8 @@ sealed class TSModel(val byteData: ByteBuffer, val itemSize: Int, val charset: C
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other?.javaClass != javaClass) return false
-
         other as TSModel
-
         if (id != other.id) return false
-
         return true
     }
 
@@ -204,13 +204,18 @@ class Item(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forNa
         descSizeIdx = DESCRIPTION_SIZE_INDEX
         descLength = DESCRIPTION_LENGTH
 
-//        println("Before ${byteData.array().toHex()}")
         id = readShort(ID_INDEX).xor(0xEFC3) - 9
-//        println("After  ${byteData.array().toHex()}")
         val nameSize = readByte(nameSizeIdx).toInt()
         name = readString(nameIdx + maxOf(nameLength - nameSize, 0), nameSize)
         val descriptionSize = readByte(descSizeIdx).toInt()
         description = readString(descIdx + descLength - descriptionSize, descriptionSize)
+    }
+
+    // MÃ HÓA NGƯỢC ID VÀO RAW BYTE
+    override fun saveId(newId: Int) {
+        this.id = newId
+        val encoded = (newId + 9).xor(0xEFC3)
+        saveShort(encoded, ID_INDEX)
     }
 
     override fun toString(): String {
@@ -324,13 +329,8 @@ fun ByteArray.toHex(): String {
         val octet = byte.toInt()
         val firstIndex = (octet and 0xF0).ushr(4)
         val secondIndex = octet and 0x0F
-//        result.append("$$index ")
         result.append(HEX_CHARS[firstIndex])
         result.append(HEX_CHARS[secondIndex])
-//        result.append(" ")
-//        if ((index + 1) % 2 == 0) {
-//            result.append(" ")
-//        }
     }
 
     return result.toString()
