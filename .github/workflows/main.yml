@@ -1,0 +1,62 @@
+name: Build TSData to EXE
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Tải mã nguồn về máy chủ
+      uses: actions/checkout@v3
+
+    - name: Thiết lập môi trường Java 8 (Dành cho code cũ)
+      uses: actions/setup-java@v3
+      with:
+        java-version: '8'
+        distribution: 'temurin'
+
+    - name: Biên dịch mã nguồn bằng Gradle
+      run: .\gradlew.bat build
+      shell: cmd
+
+    - name: Tải công cụ đóng gói Launch4j
+      run: |
+        Invoke-WebRequest -Uri "https://sourceforge.net/projects/launch4j/files/launch4j-3/3.14/launch4j-3.14-win32.zip/download" -OutFile launch4j.zip
+        Expand-Archive -Path launch4j.zip -DestinationPath launch4j
+      shell: powershell
+
+    - name: Đóng gói dữ liệu thành EXE
+      run: |
+        # Tìm lõi file jar vừa được biên dịch
+        $jarFile = Get-ChildItem -Path "build\libs" -Filter "*.jar" | Select-Object -First 1
+        if (-not $jarFile) {
+            Write-Error "Không tìm thấy file lõi .jar sau khi build!"
+            exit 1
+        }
+        
+        # Thiết lập bảng cấu hình ép kiểu cho Launch4j
+        $xml = @"
+        <launch4jConfig>
+          <dontWrapJar>false</dontWrapJar>
+          <headerType>gui</headerType>
+          <jar>$($jarFile.FullName)</jar>
+          <outfile>TSDataEditor.exe</outfile>
+          <jre>
+            <minVersion>1.8.0</minVersion>
+            <jdkPreference>preferJre</jdkPreference>
+          </jre>
+        </launch4jConfig>
+        "@
+        Set-Content -Path config.xml -Value $xml
+        
+        # Kích hoạt đóng gói
+        .\launch4j\launch4j\launch4jc.exe config.xml
+      shell: powershell
+
+    - name: Xuất xưởng file thành phẩm
+      uses: actions/upload-artifact@v3
+      with:
+        name: Tool-TSData-Editor
+        path: TSDataEditor.exe
