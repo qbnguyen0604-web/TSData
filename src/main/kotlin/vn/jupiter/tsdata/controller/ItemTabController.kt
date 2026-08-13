@@ -9,9 +9,6 @@ import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
-/**
- * Created by jupiter on 5/25/17.
- */
 val AUTO = 0
 abstract class DataRepo<T : TSModel>(val headerSize:Int = AUTO, var itemSize:Int = AUTO) {
     var headerData:ByteArray = ByteArray(headerSize)
@@ -50,7 +47,6 @@ abstract class DataRepo<T : TSModel>(val headerSize:Int = AUTO, var itemSize:Int
                 byteBuffer.put(itemArray)
                 val item = createNewItem(byteBuffer, itemSize, charSet)
                 itemList += item
-//                println("Read ${randomAccessFile.filePointer} ${item}")
             }
             println("Read ${itemList.size} items ${randomAccessFile.filePointer}/${randomAccessFile.length()}")
             randomAccessFile.close()
@@ -99,7 +95,6 @@ class SceneSkillDataRepo : DataRepo<Scene>(headerSize = 134, itemSize = 134) {
     override fun createNewItem(byteBuffer: ByteBuffer, itemSize: Int, charSet: Charset): Scene = Scene(byteBuffer, itemSize, charSet)
 }
 
-
 class ItemTabController<T : TSModel>(val leftRepo: DataRepo<T>, val rightRepo: DataRepo<T> = leftRepo) : Controller() {
     var isFiltered: Boolean = false
     var leftData = mutableListOf<T>()
@@ -142,6 +137,24 @@ class ItemTabController<T : TSModel>(val leftRepo: DataRepo<T>, val rightRepo: D
             }
         }
         return backingMap
+    }
+    
+    // HÀM XỬ LÝ NHÂN BẢN VẬT PHẨM
+    fun cloneItem(sourceItem: T) {
+        val newBuffer = ByteBuffer.allocate(sourceItem.itemSize)
+        sourceItem.byteData.position(0)
+        val tempArray = ByteArray(sourceItem.itemSize)
+        sourceItem.byteData.get(tempArray, 0, sourceItem.itemSize)
+        newBuffer.put(tempArray)
+        newBuffer.position(0)
+
+        val newItem = leftRepo.createNewItem(newBuffer, sourceItem.itemSize, sourceItem.charset)
+        val newId = (leftData.map { it.id }.maxOrNull() ?: 15000) + 1
+        newItem.saveId(newId)
+        
+        leftData.add(newItem)
+        val newPair = Pair(newItem, newItem)
+        observableList.add(0, newPair)
     }
 
     fun fillAllRightToLeft() {
@@ -218,8 +231,6 @@ class ItemTabController<T : TSModel>(val leftRepo: DataRepo<T>, val rightRepo: D
         }
     }
 
-
-
     fun toggleFilter() {
         observableList.clear()
         isFiltered = !isFiltered
@@ -280,4 +291,3 @@ class ItemTabController<T : TSModel>(val leftRepo: DataRepo<T>, val rightRepo: D
 }
 
 fun String.isNumber(): Boolean = toIntOrNull() != null
-
