@@ -16,10 +16,6 @@ import tornadofx.*
 import vn.jupiter.tsdata.controller.ItemTabController
 import vn.jupiter.tsdata.data.TSModel
 
-
-/**
- * Created by jupiter on 5/25/17.
- */
 class ItemTabView<T : TSModel>(val controller: ItemTabController<T>) : View() {
     var sourceFileTF : TextField by singleAssign()
     var destFileTF: TextField by singleAssign()
@@ -65,10 +61,7 @@ class ItemTabView<T : TSModel>(val controller: ItemTabController<T>) : View() {
             button("Load data") {
                 action {
                     runAsync {
-//                        controller.loadItems("/Users/jupiter/Parallels/Game Tools/VH/Item.Dat", "/Users/jupiter/Parallels/Game Tools/VHCD/Item.Dat")
-//                        controller.loadItems("/Users/jupiter/Parallels/Game Tools/Original/Item.Dat", "")
                         controller.loadItems(sourceFileTF.text, destFileTF.text)
-
                     } ui { items ->
                         displayItems(items)
                     }
@@ -86,7 +79,6 @@ class ItemTabView<T : TSModel>(val controller: ItemTabController<T>) : View() {
             }
             button("<-->") {
                 action {
-//                    controller.loadItems("/Users/jupiter/Parallels/Game Tools/Item_new.Dat", "")
                 }
             }
 
@@ -95,7 +87,6 @@ class ItemTabView<T : TSModel>(val controller: ItemTabController<T>) : View() {
                     controller.toggleFilter()
                 }
             }
-
 
             button("Save data") {
                 action {
@@ -106,7 +97,6 @@ class ItemTabView<T : TSModel>(val controller: ItemTabController<T>) : View() {
     }
 
     var dataTableView: TableView<Pair<T?, T?>>? = null
-
 
     init {
         dataTableView = tableview(FXCollections.emptyObservableList()) {  }
@@ -121,9 +111,20 @@ class ItemTabView<T : TSModel>(val controller: ItemTabController<T>) : View() {
             vboxConstraints {
                 vgrow = Priority.ALWAYS
             }
-            column<Pair<T?, T?>, Int>("ID", valueProvider = { feature ->
+            
+            // MỞ KHÓA CHO PHÉP CHỈNH SỬA CỘT ID
+            val idColumn = column<Pair<T?, T?>, Int>("ID", valueProvider = { feature ->
                 (feature.value.first ?: feature.value.second)?.id.toProperty()
-            })
+            }).makeEditable()
+            
+            idColumn.onEditCommit = EventHandler { event ->
+                val item = event.rowValue.first
+                if (item != null) {
+                    item.saveId(event.newValue)
+                    event.rowValue.first?.id = event.newValue
+                }
+            }
+
             val chineseNameColumn = column<Pair<T?, T?>, String>("Name", valueProvider = { feature ->
                 feature.value.first?.name.toProperty()
             }).makeEditable()
@@ -165,6 +166,19 @@ class ItemTabView<T : TSModel>(val controller: ItemTabController<T>) : View() {
             selectionModel.selectionMode = SelectionMode.MULTIPLE
 
             contextmenu {
+                // THÊM NÚT NHÂN BẢN VẬT PHẨM VÀO MENU CHUỘT PHẢI
+                item("Add New Item (Clone)") {
+                    action {
+                        if (selectionModel.selectedCells.count() > 0) {
+                            val firstItem = selectionModel.selectedItems.firstOrNull()?.first
+                            if (firstItem != null) {
+                                controller.cloneItem(firstItem)
+                                dataTableView?.refresh()
+                            }
+                        }
+                    }
+                }
+                
                 item("<<<") {
                     action {
                         if (selectionModel.selectedCells.count() > 0) {
@@ -186,7 +200,6 @@ class ItemTabView<T : TSModel>(val controller: ItemTabController<T>) : View() {
                             val selectedItems = selectionModel.selectedItems.asSequence()
                             val columnCount = firstItem.tableView.columns.size
                             when {
-//                                firstItem.column == columnCount - 1 -> controller.convertCDKD(selectedItems)
                                 firstItem.column == columnCount - 2 -> controller.convertNameCDKD(selectedItems)
                             }
                         }
@@ -198,7 +211,6 @@ class ItemTabView<T : TSModel>(val controller: ItemTabController<T>) : View() {
                         if (selectionModel.selectedCells.count() > 0) {
                             val selectedItems = selectionModel.selectedItems.asSequence()
                             controller.deleteRightItems(selectedItems)
-
                         }
                     }
                 }
