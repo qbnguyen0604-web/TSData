@@ -22,10 +22,10 @@ jobs:
       run: .\gradlew.bat build
       shell: cmd
 
-    - name: Tải công cụ đóng gói Launch4j
+    - name: Tải công cụ đóng gói Launch4j (Bypass Mirror)
       run: |
-        Invoke-WebRequest -Uri "https://sourceforge.net/projects/launch4j/files/launch4j-3/3.14/launch4j-3.14-win32.zip/download" -OutFile launch4j.zip
-        Expand-Archive -Path launch4j.zip -DestinationPath launch4j
+        curl.exe -L -o launch4j.zip "https://jaist.dl.sourceforge.net/project/launch4j/launch4j-3/3.14/launch4j-3.14-win32.zip"
+        Expand-Archive -Path launch4j.zip -DestinationPath launch4j -Force
       shell: powershell
 
     - name: Đóng gói dữ liệu thành EXE
@@ -52,7 +52,6 @@ jobs:
         "@
         Set-Content -Path config.xml -Value $xml
         
-        # Kích hoạt đóng gói
         .\launch4j\launch4j\launch4jc.exe config.xml
       shell: powershell
 
@@ -60,4 +59,6 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Tool-TSData-Editor
-        path: TSDataEditor.exe
+        path: |
+          TSDataEditor.exe
+          build/libs/*.jar
