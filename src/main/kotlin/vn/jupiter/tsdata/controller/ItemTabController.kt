@@ -100,6 +100,7 @@ class ItemTabController<T : TSModel>(val leftRepo: DataRepo<T>, val rightRepo: D
     var leftData = mutableListOf<T>()
     var rightData = mutableListOf<T>()
     val observableList = FXCollections.observableArrayList<Pair<T?, T?>>()
+    
     fun loadItems(originalPath: String, vhPath: String): ObservableList<Pair<T?, T?>> {
         observableList.clear()
         leftData.clear()
@@ -139,7 +140,6 @@ class ItemTabController<T : TSModel>(val leftRepo: DataRepo<T>, val rightRepo: D
         return backingMap
     }
     
-    // HÀM XỬ LÝ NHÂN BẢN VẬT PHẨM
     fun cloneItem(sourceItem: T) {
         val newBuffer = ByteBuffer.allocate(sourceItem.itemSize)
         sourceItem.byteData.position(0)
@@ -270,19 +270,16 @@ class ItemTabController<T : TSModel>(val leftRepo: DataRepo<T>, val rightRepo: D
         }
     }
 
-// HÀM XÓA VẬT PHẨM HOÀN TOÀN KHỎI HỆ THỐNG
     fun deleteItem(selectedItems: Sequence<Pair<T?, T?>>) {
-        // Chuyển sang dạng List để tránh lỗi xung đột khi vừa duyệt vừa xóa
         val itemsToRemove = selectedItems.toList() 
         itemsToRemove.forEach { pair ->
             val item = pair.first
             if (item != null) {
-                // Xóa tận gốc khỏi bộ nhớ lưu file
                 leftData.remove(item)
-                // Xóa khỏi lưới hiển thị trên giao diện
                 observableList.remove(pair)
             }
         }
     }
+}
 
 fun String.isNumber(): Boolean = toIntOrNull() != null
