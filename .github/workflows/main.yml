@@ -11,11 +11,12 @@ jobs:
     - name: Tải mã nguồn về máy chủ
       uses: actions/checkout@v4
 
-    - name: Thiết lập môi trường Java 8 (Dành cho code cũ)
+    - name: Thiết lập môi trường Java 8 (Có sẵn JavaFX của Zulu)
       uses: actions/setup-java@v4
       with:
         java-version: '8'
-        distribution: 'temurin'
+        distribution: 'zulu'
+        java-package: 'jdkfx'
 
     - name: Biên dịch mã nguồn bằng Gradle
       run: .\gradlew.bat build
