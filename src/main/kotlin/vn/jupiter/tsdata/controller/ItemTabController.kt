@@ -149,7 +149,7 @@ class ItemTabController<T : TSModel>(val leftRepo: DataRepo<T>, val rightRepo: D
         newBuffer.position(0)
 
         val newItem = leftRepo.createNewItem(newBuffer, sourceItem.itemSize, sourceItem.charset)
-        val newId = (leftData.map { it.id }.maxOrNull() ?: 15000) + 1
+        val newId = (leftData.map { it.id }.max() ?: 15000) + 1
         newItem.saveId(newId)
         
         leftData.add(newItem)
