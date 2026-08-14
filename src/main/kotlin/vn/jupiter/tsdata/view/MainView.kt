@@ -61,7 +61,10 @@ class MainView : View("TS Data Editor - Ultimate Version") {
                 rows.forEach { row ->
                     // Tính năng tự động phát hiện Excel dùng dấu phẩy hay chấm phẩy
                     val separator = if (row.contains(";")) ";" else ","
-                    val cols = row.split(separator)
+                    // Cắt các cột ra và ép nó thành danh sách có thể thay đổi
+                    val cols = row.split(separator).toMutableList()
+                    // Nếu cột Mô tả bị rỗng làm hụt size, tự động đắp thêm khoảng trống vào cho đủ 36 cột
+                    while (cols.size < 36) cols.add("")
                     
                     if (cols.size >= 36) { 
                         val parsedId = cols[0].toIntOrNull()
