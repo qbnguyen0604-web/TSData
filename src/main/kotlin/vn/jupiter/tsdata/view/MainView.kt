@@ -49,6 +49,7 @@ class MainView : View("TS Data Editor - Ultimate Version") {
         }
     }
 
+    // --- HÀM NHẬP TỪ EXCEL (BẢN VÁ LỖI EXCEL VIỆT NAM) ---
     private fun importFromCSV() {
         val files = chooseFile("Chọn file CSV đã sửa", arrayOf(FileChooser.ExtensionFilter("CSV Files", "*.csv")), FileChooserMode.Single)
         if (files.isNotEmpty()) {
@@ -59,7 +60,10 @@ class MainView : View("TS Data Editor - Ultimate Version") {
             file.useLines(Charsets.UTF_8) { lines ->
                 val rows = lines.drop(1) 
                 rows.forEach { row ->
-                    val cols = row.split(",")
+                    // TÍNH NĂNG MỚI: Tự động phát hiện Excel dùng dấu phẩy hay chấm phẩy
+                    val separator = if (row.contains(";")) ";" else ","
+                    val cols = row.split(separator)
+                    
                     if (cols.size >= 36) { 
                         val parsedId = cols[0].toIntOrNull()
                         if (parsedId != null) {
@@ -93,4 +97,3 @@ class MainView : View("TS Data Editor - Ultimate Version") {
             information("Thành công", "Đã nạp $count vật phẩm. Hãy bấm [Save data]!")
         }
     }
-}
