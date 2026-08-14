@@ -4,11 +4,9 @@ import javafx.stage.FileChooser
 import tornadofx.*
 import vn.jupiter.tsdata.controller.*
 import vn.jupiter.tsdata.data.Item
-import java.io.File
 
 class MainView : View("TS Data Editor - Ultimate Version") {
     
-    // Khởi tạo Controller riêng cho Item để dễ dàng trích xuất dữ liệu
     val itemRepo = ItemInfoDataRepo()
     val itemController = ItemTabController(itemRepo)
     
@@ -23,71 +21,76 @@ class MainView : View("TS Data Editor - Ultimate Version") {
     override val root = borderpane {
         top = menubar {
             menu("Xử lý Hàng Loạt (Excel/CSV)") {
-                item("1. Xuất Item.Dat ra CSV").action { exportToCSV() }
+                item("1. Xuất Item.Dat ra CSV (Toàn bộ 30 Cột)").action { exportToCSV() }
                 item("2. Nhập CSV vào Tool").action { importFromCSV() }
             }
         }
         center = tabpane {
-            dataSet.keys.forEach {
-                tab(it, dataSet[it]!!.root)
-            }
+            dataSet.keys.forEach { tab(it, dataSet[it]!!.root) }
         }
     }
 
-    // --- HÀM XUẤT RA EXCEL ---
     private fun exportToCSV() {
         val files = chooseFile("Lưu file CSV", arrayOf(FileChooser.ExtensionFilter("CSV Files", "*.csv")), FileChooserMode.Save)
         if (files.isNotEmpty()) {
             val file = files.first()
-            // SỬA LỖI Ở ĐÂY: Dùng leftData thay vì items
             val itemsData = itemController.leftData 
             
-            // Dùng Charsets.UTF_8 để Excel đọc tiếng Việt không bị lỗi font
             file.printWriter(Charsets.UTF_8).use { out ->
-                out.println("ID,Tên (Name),Thuộc tính ẩn (Hex Data),Mô tả (Description)")
-                itemsData.forEach { item ->
-                    val safeName = item.name.replace(",", " ")
-                    val safeDesc = item.description.replace(",", " ")
-                    out.println("${item.id},${safeName},${item.extraDataHex},${safeDesc}")
+                // Tiêu đề 30 cột rõ ràng như ban ngày
+                out.println("ID,Name,Type,PicID,LargePicID,EquipImg1,EquipImg2,Prop1,Prop1Val,Prop2,Prop2Val,ElemType,ElemVal,Contribute,SellPrice1,EquipPos,Level,BuyPrice,SellPrice2,EquipLimit,ColorDefHex,Unk1,Unk2,Unk3,Unk4,Unk5,Unk6,Unk9,Unk10,Unk11,Unk12,Unk13,Unk14,Unk15,Unk16,Description")
+                itemsData.forEach { i ->
+                    val sName = i.name.replace(",", " ")
+                    val sDesc = i.description.replace(",", " ")
+                    out.println("${i.id},${sName},${i.type},${i.picId},${i.largeIconNum},${i.equipImage1},${i.equipImage2},${i.prop1},${i.prop1Val},${i.prop2},${i.prop2Val},${i.elemType},${i.elemVal},${i.contribute},${i.sellPrice1},${i.equipPos},${i.level},${i.buyingPrice},${i.sellingPrice},${i.equipLimit},${i.colorDefHex},${i.unk1},${i.unk2},${i.unk3},${i.unk4},${i.unk5},${i.unk6},${i.unk9},${i.unk10},${i.unk11},${i.unk12},${i.unk13},${i.unk14},${i.unk15},${i.unk16},${sDesc}")
                 }
             }
-            information("Thành công", "Đã xuất ${itemsData.size} vật phẩm ra file CSV.\nBạn có thể mở bằng Excel để sửa!")
+            information("Thành công", "Đã xuất Full 30 cột ra CSV. Mở bằng Excel và làm chủ trò chơi!")
         }
     }
 
-    // --- HÀM NHẬP TỪ EXCEL ---
     private fun importFromCSV() {
         val files = chooseFile("Chọn file CSV đã sửa", arrayOf(FileChooser.ExtensionFilter("CSV Files", "*.csv")), FileChooserMode.Single)
         if (files.isNotEmpty()) {
             val file = files.first()
-            // SỬA LỖI Ở ĐÂY: Dùng leftData thay vì items
             val itemsData = itemController.leftData 
             var count = 0
             
             file.useLines(Charsets.UTF_8) { lines ->
-                val rows = lines.drop(1) // Bỏ qua dòng tiêu đề
+                val rows = lines.drop(1) 
                 rows.forEach { row ->
-                    val columns = row.split(",")
-                    if (columns.size >= 4) {
-                        val parsedId = columns[0].toIntOrNull()
+                    val cols = row.split(",")
+                    if (cols.size >= 36) { 
+                        val parsedId = cols[0].toIntOrNull()
                         if (parsedId != null) {
-                            val targetItem = itemsData.find { it.id == parsedId }
-                            if (targetItem != null) {
-                                targetItem.name = columns[1]
-                                targetItem.extraDataHex = columns[2]
-                                targetItem.description = columns[3]
+                            val t = itemsData.find { it.id == parsedId }
+                            if (t != null) {
+                                t.name = cols[1]; t.type = cols[2].toInt(); t.picId = cols[3].toInt()
+                                t.largeIconNum = cols[4].toInt(); t.equipImage1 = cols[5].toInt()
+                                t.equipImage2 = cols[6].toInt(); t.prop1 = cols[7].toInt()
+                                t.prop1Val = cols[8].toInt(); t.prop2 = cols[9].toInt()
+                                t.prop2Val = cols[10].toInt(); t.elemType = cols[11].toInt()
+                                t.elemVal = cols[12].toInt(); t.contribute = cols[13].toInt()
+                                t.sellPrice1 = cols[14].toInt(); t.equipPos = cols[15].toInt()
+                                t.level = cols[16].toInt(); t.buyingPrice = cols[17].toLong()
+                                t.sellingPrice = cols[18].toLong(); t.equipLimit = cols[19].toInt()
+                                t.colorDefHex = cols[20]; t.unk1 = cols[21].toInt()
+                                t.unk2 = cols[22].toInt(); t.unk3 = cols[23].toInt()
+                                t.unk4 = cols[24].toInt(); t.unk5 = cols[25].toInt()
+                                t.unk6 = cols[26].toLong(); t.unk9 = cols[27].toInt()
+                                t.unk10 = cols[28].toInt(); t.unk11 = cols[29].toInt()
+                                t.unk12 = cols[30].toInt(); t.unk13 = cols[31].toInt()
+                                t.unk14 = cols[32].toInt(); t.unk15 = cols[33].toInt()
+                                t.unk16 = cols[34].toInt(); t.description = cols[35]
                                 count++
                             }
                         }
                     }
                 }
             }
-            
-            // Làm mới giao diện bảng (Buộc UI tải lại dữ liệu mới)
             itemController.observableList.clear()
             itemController.observableList.addAll(itemsData.map { Pair(it, it) })
-            
-            information("Thành công", "Đã nạp dữ liệu cho $count vật phẩm.\nHãy qua tab Item và bấm [Save data] để lưu file nhé!")
+            information("Thành công", "Đã nạp $count vật phẩm. Hãy bấm [Save data]!")
         }
     }
 }
