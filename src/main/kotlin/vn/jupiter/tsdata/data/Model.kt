@@ -193,49 +193,96 @@ class Item(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forNa
         val DESCRIPTION_SIZE_INDEX = 115
         val DESCRIPTION_INDEX = 116
         val DESCRIPTION_LENGTH = 254
-        
-        // Định nghĩa vùng không gian chứa 28 cột ẩn (từ byte 24 đến 114)
-        val EXTRA_DATA_START = 24
-        val EXTRA_DATA_LENGTH = 91 
     }
 
     init {
         nameIdx = NAME_INDEX
         nameSizeIdx = NAME_SIZE_INDEX
         nameLength = NAME_LENGTH
-
         descIdx = DESCRIPTION_INDEX
         descSizeIdx = DESCRIPTION_SIZE_INDEX
         descLength = DESCRIPTION_LENGTH
 
-        id = readShort(ID_INDEX).xor(0xEFC3) - 9
+        id = decode16(ID_INDEX)
         val nameSize = readByte(nameSizeIdx).toInt()
         name = readString(nameIdx + maxOf(nameLength - nameSize, 0), nameSize)
         val descriptionSize = readByte(descSizeIdx).toInt()
         description = readString(descIdx + descLength - descriptionSize, descriptionSize)
     }
 
-    // TÍNH NĂNG MỚI: Trích xuất 28 cột ẩn ra chuỗi HEX để chỉnh sửa trên Excel
-    var extraDataHex: String
-        get() = getHexString(EXTRA_DATA_START, EXTRA_DATA_LENGTH)
-        set(value) {
-            val cleanHex = value.replace(" ", "").trim()
-            if (cleanHex.length == EXTRA_DATA_LENGTH * 2) {
+    // --- BỘ CÔNG CỤ MÃ HÓA / GIẢI MÃ (Dịch từ C# của bạn) ---
+    fun saveLong(value: Long, start: Int) {
+        byteData.put(start, (value and 0xFF).toByte())
+        byteData.put(start + 1, ((value ushr 8) and 0xFF).toByte())
+        byteData.put(start + 2, ((value ushr 16) and 0xFF).toByte())
+        byteData.put(start + 3, ((value ushr 24) and 0xFF).toByte())
+    }
+
+    private fun decode8(index: Int): Int = ((readByte(index).toInt() xor 154) - 9) and 0xFF
+    private fun encode8(index: Int, value: Int) = saveByte(((value + 9) xor 154) and 0xFF, index)
+
+    private fun decode16(index: Int): Int = ((readShort(index) xor 61379) - 9) and 0xFFFF
+    private fun encode16(index: Int, value: Int) = saveShort(((value + 9) xor 61379) and 0xFFFF, index)
+
+    private fun decode32(index: Int): Long = ((readLong(index) xor 193000628L) - 9L) and 0xFFFFFFFFL
+    private fun encode32(index: Int, value: Long) = saveLong(((value + 9L) xor 193000628L) and 0xFFFFFFFFL, index)
+
+    private fun decode32s(index: Int): Int = (readLong(index).toInt() xor 193000628) - 109
+    private fun encode32s(index: Int, value: Int) = saveLong(((value + 109) xor 193000628).toLong(), index)
+
+    override fun saveId(newId: Int) {
+        this.id = newId
+        encode16(ID_INDEX, newId)
+    }
+
+    // --- BẢN ĐỒ GIẢI PHẪU 30 CỘT DỮ LIỆU ---
+    var type: Int get() = decode8(21); set(v) = encode8(21, v)
+    var picId: Int get() = decode16(24); set(v) = encode16(24, v)
+    var largeIconNum: Int get() = decode16(26); set(v) = encode16(26, v)
+    var equipImage1: Int get() = decode16(28); set(v) = encode16(28, v)
+    var equipImage2: Int get() = decode16(30); set(v) = encode16(30, v)
+    var prop1: Int get() = decode16(32); set(v) = encode16(32, v)
+    var prop2: Int get() = decode16(34); set(v) = encode16(34, v)
+    var unk1: Int get() = decode8(36); set(v) = encode8(36, v)
+    var unk2: Int get() = decode8(37); set(v) = encode8(37, v)
+    var prop1Val: Int get() = decode32s(38); set(v) = encode32s(38, v)
+    var prop2Val: Int get() = decode32s(42); set(v) = encode32s(42, v)
+    var contribute: Int get() = decode8(46); set(v) = encode8(46, v)
+    var sellPrice1: Int get() = decode8(47); set(v) = encode8(47, v)
+    var equipPos: Int get() = decode8(48); set(v) = encode8(48, v)
+    var unk3: Int get() = decode8(49); set(v) = encode8(49, v)
+    
+    var colorDefHex: String 
+        get() = getHexString(50, 32) // Màu sắc không cần sửa tay, lưu dưới dạng Hex cho an toàn
+        set(v) {
+            val clean = v.replace(" ", "").trim()
+            if (clean.length == 64) {
                 val oldPos = byteData.position()
-                byteData.position(EXTRA_DATA_START)
-                for (i in 0 until EXTRA_DATA_LENGTH) {
-                    val byteStr = cleanHex.substring(i * 2, i * 2 + 2)
-                    byteData.put(byteStr.toInt(16).toByte())
+                byteData.position(50)
+                for (i in 0 until 32) {
+                    byteData.put(clean.substring(i*2, i*2+2).toInt(16).toByte())
                 }
                 byteData.position(oldPos)
             }
         }
-
-    override fun saveId(newId: Int) {
-        this.id = newId
-        val encoded = (newId + 9).xor(0xEFC3)
-        saveShort(encoded, ID_INDEX)
-    }
+        
+    var unk4: Int get() = decode8(82); set(v) = encode8(82, v)
+    var level: Int get() = decode8(83); set(v) = encode8(83, v)
+    var buyingPrice: Long get() = decode32(84); set(v) = encode32(84, v)
+    var sellingPrice: Long get() = decode32(88); set(v) = encode32(88, v)
+    var equipLimit: Int get() = decode8(92); set(v) = encode8(92, v)
+    var unk5: Int get() = decode8(93); set(v) = encode8(93, v)
+    var unk6: Long get() = decode32(94); set(v) = encode32(94, v)
+    var elemType: Int get() = decode8(98); set(v) = encode8(98, v)
+    var elemVal: Int get() = decode32s(99); set(v) = encode32s(99, v)
+    var unk9: Int get() = decode16(103); set(v) = encode16(103, v)
+    var unk10: Int get() = decode8(105); set(v) = encode8(105, v)
+    var unk11: Int get() = decode16(106); set(v) = encode16(106, v)
+    var unk12: Int get() = decode8(108); set(v) = encode8(108, v)
+    var unk13: Int get() = decode16(109); set(v) = encode16(109, v)
+    var unk14: Int get() = decode8(111); set(v) = encode8(111, v)
+    var unk15: Int get() = decode16(112); set(v) = encode16(112, v)
+    var unk16: Int get() = decode8(114); set(v) = encode8(114, v)
 
     override fun toString(): String {
         return "Item id: $id name: $name desc: $description"
