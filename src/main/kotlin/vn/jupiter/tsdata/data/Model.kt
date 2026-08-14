@@ -193,6 +193,10 @@ class Item(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forNa
         val DESCRIPTION_SIZE_INDEX = 115
         val DESCRIPTION_INDEX = 116
         val DESCRIPTION_LENGTH = 254
+        
+        // Định nghĩa vùng không gian chứa 28 cột ẩn (từ byte 24 đến 114)
+        val EXTRA_DATA_START = 24
+        val EXTRA_DATA_LENGTH = 91 
     }
 
     init {
@@ -211,7 +215,22 @@ class Item(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forNa
         description = readString(descIdx + descLength - descriptionSize, descriptionSize)
     }
 
-    // MÃ HÓA NGƯỢC ID VÀO RAW BYTE
+    // TÍNH NĂNG MỚI: Trích xuất 28 cột ẩn ra chuỗi HEX để chỉnh sửa trên Excel
+    var extraDataHex: String
+        get() = getHexString(EXTRA_DATA_START, EXTRA_DATA_LENGTH)
+        set(value) {
+            val cleanHex = value.replace(" ", "").trim()
+            if (cleanHex.length == EXTRA_DATA_LENGTH * 2) {
+                val oldPos = byteData.position()
+                byteData.position(EXTRA_DATA_START)
+                for (i in 0 until EXTRA_DATA_LENGTH) {
+                    val byteStr = cleanHex.substring(i * 2, i * 2 + 2)
+                    byteData.put(byteStr.toInt(16).toByte())
+                }
+                byteData.position(oldPos)
+            }
+        }
+
     override fun saveId(newId: Int) {
         this.id = newId
         val encoded = (newId + 9).xor(0xEFC3)
