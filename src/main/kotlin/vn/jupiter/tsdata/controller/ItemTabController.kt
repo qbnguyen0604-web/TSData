@@ -95,6 +95,10 @@ class SceneSkillDataRepo : DataRepo<Scene>(headerSize = 134, itemSize = 134) {
     override fun createNewItem(byteBuffer: ByteBuffer, itemSize: Int, charSet: Charset): Scene = Scene(byteBuffer, itemSize, charSet)
 }
 
+class ShopDataRepo : DataRepo<ShopItem>(headerSize = AUTO, itemSize = AUTO) {
+    override fun createNewItem(byteBuffer: ByteBuffer, itemSize: Int, charSet: Charset): ShopItem = ShopItem(byteBuffer, itemSize, charSet)
+}
+
 class ItemTabController<T : TSModel>(val leftRepo: DataRepo<T>, val rightRepo: DataRepo<T> = leftRepo) : Controller() {
     var isFiltered: Boolean = false
     var leftData = mutableListOf<T>()
