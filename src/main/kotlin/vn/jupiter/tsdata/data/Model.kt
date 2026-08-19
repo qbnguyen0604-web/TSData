@@ -384,6 +384,49 @@ class Scene(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forN
     override fun getNameKD(): String = convertToKD(nameIdx, nameLength, false)
 }
 
+class ShopItem(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("Big5")) : TSModel(byteData, itemSize, charset) {
+    
+    // Giả định cấu trúc cơ bản của file8.dat: [2 byte ShopID] [1 byte Index] [2 byte ItemID]
+    // Nếu đọc lên Tool bị ra số rác, bro chỉ cần thêm .xor(0xMã_Hex) vào sau hàm read/save giống như các file khác nhé!
+    var shopIdVal: Int
+        get() = readShort(0) 
+        set(value) = saveShort(value, 0)
+
+    var itemIndexVal: Int
+        get() = readByte(2).toInt()
+        set(value) = saveByte(value, 2)
+
+    var itemIdVal: Int
+        get() = readShort(3)
+        set(value) = saveShort(value, 3)
+
+    init {
+        id = shopIdVal
+    }
+
+    override fun saveId(newId: Int) {
+        shopIdVal = newId
+        id = newId
+    }
+
+    // Cú lừa UI số 1: Biến cột "Name" thành Item ID
+    override var name: String
+        // Thêm khoảng trắng vào cuối để lừa hàm isNumber() của Tool, giúp ô này không bị bôi màu đỏ do trùng định dạng số
+        get() = itemIdVal.toString() + " " 
+        set(value) {
+            val parsed = value.trim().toIntOrNull() ?: 0
+            itemIdVal = parsed
+        }
+
+    // Cú lừa UI số 2: Biến cột "Description" thành Index (Vị trí ô đồ)
+    override var description: String
+        get() = itemIndexVal.toString() + " "
+        set(value) {
+            val parsed = value.trim().toIntOrNull() ?: 0
+            itemIndexVal = parsed
+        }
+}
+
 private val HEX_CHARS = "0123456789ABCDEF".toCharArray()
 
 fun Byte.toPositiveInt() = toShort() and 0xFF
