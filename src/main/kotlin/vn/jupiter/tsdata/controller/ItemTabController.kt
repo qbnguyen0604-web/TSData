@@ -95,7 +95,8 @@ class SceneSkillDataRepo : DataRepo<Scene>(headerSize = 134, itemSize = 134) {
     override fun createNewItem(byteBuffer: ByteBuffer, itemSize: Int, charSet: Charset): Scene = Scene(byteBuffer, itemSize, charSet)
 }
 
-class ShopDataRepo : DataRepo<ShopItem>(headerSize = AUTO, itemSize = AUTO) {
+// ÉP CỨNG: Không có Header (0) và Độ dài mỗi dòng là 5 byte
+class ShopDataRepo : DataRepo<ShopItem>(headerSize = 0, itemSize = 5) {
     override fun createNewItem(byteBuffer: ByteBuffer, itemSize: Int, charSet: Charset): ShopItem = ShopItem(byteBuffer, itemSize, charSet)
 }
 
