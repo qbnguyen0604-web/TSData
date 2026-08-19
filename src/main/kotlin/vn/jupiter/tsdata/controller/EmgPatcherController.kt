@@ -24,7 +24,7 @@ class EmgPatcherController : Controller() {
         val headers = mutableListOf<MapHeader>()
         var endHeader = totalSize
 
-        // 1. ĐỌC TOÀN BỘ MỤC LỤC (HEADERS)
+        // 1. ĐỌC MỤC LỤC
         while (buffer.position() < endHeader) {
             val pos = buffer.position()
             val mapIdBytes = ByteArray(5)
@@ -42,7 +42,7 @@ class EmgPatcherController : Controller() {
             buffer.position(pos + 32)
         }
 
-        // 2. TÌM MAP MỤC TIÊU (Vd: 12001)
+        // 2. TÌM MAP MỤC TIÊU
         val targetIdx = headers.indexOfFirst { it.mapId == mapIdTarget }
         if (targetIdx == -1) throw Exception("Không tìm thấy Map $mapIdTarget trong file EMG!")
 
@@ -50,32 +50,48 @@ class EmgPatcherController : Controller() {
         val mapData = ByteArray(targetHeader.length)
         System.arraycopy(fullData, targetHeader.origOffset, mapData, 0, targetHeader.length)
 
-        // 3. DÒ TÌM VỊ TRÍ KHỐI SHOP TRONG MAP
+        // 3. DÒ TÌM VỊ TRÍ KHỐI SHOP TRONG MAP (Dịch chuẩn xác 100% từ C#)
         var p = 103
         val nb_npc = mapData[p].toInt() and 0xFF
         p += 4
         for (i in 0 until nb_npc) {
             p += 6
-            val nb = (mapData[p].toInt() and 0xFF) or ((mapData[p+1].toInt() and 0xFF) shl 8)
-            p += 2 + nb
-            val b = mapData[p].toInt() and 0xFF; p += 1 + b
-            val b2 = mapData[p].toInt() and 0xFF; p += 1 + 8 + (b2 * 8) + 43 + 37
+            // FIX LỖI CRASH TẠI ĐÂY: Đọc từ p - 2
+            val nb = (mapData[p - 2].toInt() and 0xFF) or ((mapData[p - 1].toInt() and 0xFF) shl 8)
+            p += nb
+            val b = mapData[p].toInt() and 0xFF; p++
+            p += b
+            val b2 = mapData[p].toInt() and 0xFF; p++
+            p += 8
+            p += b2 * 8
+            p += 43
+            p += 37
         }
         val nb_items = (mapData[p].toInt() and 0xFF) or ((mapData[p+1].toInt() and 0xFF) shl 8)
-        p += 1 + (nb_items * 13) + 1
+        p++ // C# dùng p++ ở đây
+        for (j in 0 until nb_items) {
+            p += 13
+        }
+        p++ // C# dùng p++ ở đây
+
         val nb_gates = (mapData[p].toInt() and 0xFF) or ((mapData[p+1].toInt() and 0xFF) shl 8)
         p += 2
         for (k in 0 until nb_gates) {
             p += 2
             val nb2 = (mapData[p].toInt() and 0xFF) or ((mapData[p+1].toInt() and 0xFF) shl 8)
-            p += 2 + nb2 + 21
+            p += 2
+            p += nb2
+            p += 21
         }
         val nb_enc = (mapData[p].toInt() and 0xFF) or ((mapData[p+1].toInt() and 0xFF) shl 8)
         p += 2
         for (l in 0 until nb_enc) {
             p += 2
             val numCount = (mapData[p].toInt() and 0xFF) or ((mapData[p+1].toInt() and 0xFF) shl 8)
-            p += 2 + numCount + 16 + 1
+            p += 2
+            p += numCount
+            p += 16
+            p++
         }
 
         val dialogCountOffset = p
@@ -85,10 +101,11 @@ class EmgPatcherController : Controller() {
         for (m in 0 until nb_dialog) {
             p += 4
             val nb_d = mapData[p].toInt() and 0xFF
-            p += 3 + 1 + (5 * nb_d)
+            p += 4
+            p += 5 * nb_d
         }
 
-        val insertPoint = p // Tọa độ vàng để chèn Shop
+        val insertPoint = p 
 
         // 4. CHẾ TẠO GÓI TIN SHOP VIP
         val nb_d_new = itemIds.size + 1
@@ -97,15 +114,15 @@ class EmgPatcherController : Controller() {
         payload.put(ByteArray(3))
         payload.put(nb_d_new.toByte())
         payload.put(ByteArray(2))
-        payload.put(1.toByte()) // Cờ đánh dấu đây là Shop
+        payload.put(1.toByte()) 
         for (id in itemIds) {
             payload.putShort(id.toShort())
             payload.put(ByteArray(3))
         }
-        payload.put(ByteArray(5)) // Block kết thúc
+        payload.put(ByteArray(5)) 
         val payloadBytes = payload.array()
 
-        // 5. CẬP NHẬT LẠI SỐ LƯỢNG VÀ LẮP RÁP MAP
+        // 5. CẬP NHẬT SỐ LƯỢNG VÀ LẮP RÁP MAP
         val newDialogCount = nb_dialog + 1
         mapData[dialogCountOffset] = (newDialogCount and 0xFF).toByte()
         mapData[dialogCountOffset+1] = ((newDialogCount shr 8) and 0xFF).toByte()
@@ -122,7 +139,7 @@ class EmgPatcherController : Controller() {
             headers[i].offset += sizeDiff
         }
 
-        // 7. XUẤT RA FILE MỚI (Repack)
+        // 7. XUẤT RA FILE MỚI
         val out = FileOutputStream(outputFile)
         val headerBuffer = ByteBuffer.allocate(endHeader).order(ByteOrder.LITTLE_ENDIAN)
         System.arraycopy(fullData, 0, headerBuffer.array(), 0, endHeader)
