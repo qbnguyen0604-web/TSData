@@ -15,7 +15,7 @@ class MainView : View("TS Data Editor - Ultimate Version") {
             "NPC" to ItemTabView(ItemTabController(NpcInfoDataRepo(), NpcInfoDataRepo())),
             "Talk" to ItemTabView(ItemTabController(TalkDataRepo())),
             "Skill" to ItemTabView(ItemTabController(SkillDataRepo())),
-            "Scene" to ItemTabView(ItemTabController(SceneSkillDataRepo()))
+            "Scene" to ItemTabView(ItemTabController(SceneSkillDataRepo())),
             "Shop (file8.dat)" to ItemTabView(ItemTabController(ShopDataRepo(), ShopDataRepo()))
     )
 
