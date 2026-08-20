@@ -26,14 +26,14 @@ class GSItem(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.for
     override fun saveId(newId: Int) { val0 = newId; id = newId }
 }
 
-// 2. ÉP CỨNG THUẬT TOÁN ĐỌC 20 BYTE KHÔNG HEADER
+// 2. ÉP CỨNG THUẬT TOÁN ĐỌC 20 BYTE
 class GSDataRepo : DataRepo<GSItem>(headerSize = 0, itemSize = 20) {
     override fun createNewItem(byteBuffer: ByteBuffer, itemSize: Int, charSet: Charset): GSItem {
         return GSItem(byteBuffer, itemSize, charSet)
     }
 }
 
-// 3. TẠO BỘ ĐIỀU KHIỂN
+// 3. TẠO BỘ ĐIỀU KHIỂN (Ép kiểu tường minh để sửa lỗi Unresolved reference)
 class GSTabController : Controller() {
     val repo = GSDataRepo()
     val items = observableListOf<GSItem>()
@@ -41,12 +41,21 @@ class GSTabController : Controller() {
     fun loadData(file: java.io.File) {
         items.clear()
         val loaded = repo.load(file.absolutePath)
-        // Lọc bỏ dòng đầu tiên nếu chứa toàn số 0 (Bộ đệm rỗng)
-        items.addAll(loaded.filter { it.val0 > 0 || it.val2 > 0 })
+        
+        // Nhận diện an toàn Map từ DataRepo để tránh lỗi "it"
+        if (loaded is Map<*, *>) {
+            val values = loaded.values as Collection<GSItem>
+            items.addAll(values.filter { it.val0 != 0 || it.val2 != 0 })
+        } else if (loaded is Collection<*>) {
+            val values = loaded as Collection<GSItem>
+            items.addAll(values.filter { it.val0 != 0 || it.val2 != 0 })
+        }
     }
 
     fun saveData(file: java.io.File) {
-        repo.save(file.absolutePath, items)
+        // Đóng gói thành Map chuẩn xác để fix lỗi Properties.save()
+        val dataMap: Map<Int, GSItem> = items.associateBy { it.id }
+        repo.save(file.absolutePath, dataMap)
     }
 }
 
@@ -60,13 +69,15 @@ class GSTabView : View("Shop Point (GS.dat)") {
             alignment = Pos.CENTER_LEFT
             button("Load GS.dat") {
                 action {
-                    val files = chooseFile("Chọn GS.dat", arrayOf(javafx.stage.FileChooser.ExtensionFilter("DAT", "*.dat", "*.Dat")))
+                    // Fix lỗi FileChooserMode
+                    val files = chooseFile("Chọn GS.dat", arrayOf(javafx.stage.FileChooser.ExtensionFilter("DAT", "*.dat", "*.Dat")), mode = FileChooserMode.Single)
                     if (files.isNotEmpty()) controller.loadData(files[0])
                 }
             }
             button("Save GS.dat") {
                 action {
-                    val files = chooseFile("Lưu GS.dat", arrayOf(javafx.stage.FileChooser.ExtensionFilter("DAT", "*.dat", "*.Dat")), mode = javafx.stage.FileChooserMode.Save)
+                    // Fix lỗi FileChooserMode
+                    val files = chooseFile("Lưu GS.dat", arrayOf(javafx.stage.FileChooser.ExtensionFilter("DAT", "*.dat", "*.Dat")), mode = FileChooserMode.Save)
                     if (files.isNotEmpty()) {
                         controller.saveData(files[0])
                         information("Thành công", "Đã lưu GS.dat thành công!")
@@ -74,7 +85,9 @@ class GSTabView : View("Shop Point (GS.dat)") {
                 }
             }
         }
-        center = tableview(controller.items) {
+        
+        // Khai báo kiểu <GSItem> để fix dứt điểm lỗi Type inference failed
+        center = tableview<GSItem>(controller.items) {
             isEditable = true
             columnResizePolicy = javafx.scene.control.TableView.CONSTRAINED_RESIZE_POLICY
             
