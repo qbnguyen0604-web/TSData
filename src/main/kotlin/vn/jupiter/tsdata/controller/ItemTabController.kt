@@ -100,6 +100,12 @@ class ShopDataRepo : DataRepo<ShopItem>(headerSize = 0, itemSize = 5) {
     override fun createNewItem(byteBuffer: ByteBuffer, itemSize: Int, charSet: Charset): ShopItem = ShopItem(byteBuffer, itemSize, charSet)
 }
 
+// Khởi tạo Repo cho GS.dat. 
+// Nếu load file bị Crash IndexOutOfBounds, bro hãy sửa headerSize và itemSize thành số cứng nhé (VD: headerSize = 0, itemSize = 24)
+class GSDataRepo : DataRepo<GSItem>(headerSize = AUTO, itemSize = AUTO) {
+    override fun createNewItem(byteBuffer: ByteBuffer, itemSize: Int, charSet: Charset): GSItem = GSItem(byteBuffer, itemSize, charSet)
+}
+
 class ItemTabController<T : TSModel>(val leftRepo: DataRepo<T>, val rightRepo: DataRepo<T> = leftRepo) : Controller() {
     var isFiltered: Boolean = false
     var leftData = mutableListOf<T>()
