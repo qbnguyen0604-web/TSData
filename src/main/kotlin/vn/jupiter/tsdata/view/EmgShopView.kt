@@ -37,7 +37,7 @@ class EmgShopView : View("EMG Shop Patcher") {
             alignment = Pos.CENTER_LEFT
             label("Bơm vào Map ID:")
             textfield(mapIdProp) { prefWidth = 100.0 }
-            label("  |  ID Shop VIP:")
+            label("  |  ID Shop cần Ghi đè:")
             textfield(shopIdProp) { prefWidth = 80.0 }
         }
 
