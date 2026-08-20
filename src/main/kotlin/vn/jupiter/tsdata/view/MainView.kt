@@ -17,7 +17,8 @@ class MainView : View("TS Data Editor - Ultimate Version") {
             "Skill" to ItemTabView(ItemTabController(SkillDataRepo())),
             "Scene" to ItemTabView(ItemTabController(SceneSkillDataRepo())),
             "Shop (file8.dat)" to ItemTabView(ItemTabController(ShopDataRepo(), ShopDataRepo())),
-            "Shop VIP (EMG)" to EmgShopView()
+            "Shop VIP (EMG)" to EmgShopView(),
+            "Shop Point (GS.dat)" to ItemTabView(ItemTabController(GSDataRepo(), GSDataRepo()))
     )
 
     override val root = borderpane {
