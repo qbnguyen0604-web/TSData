@@ -10,47 +10,41 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 // ========================================================
-// 1. MODEL ĐỘC LẬP (Ép dùng StringProperty để UI cho phép Edit mượt mà)
+// 1. MODEL NỘI SOI (Lưu lại vị trí gốc của món đồ trong File)
 // ========================================================
-class GSItem(v0: Int, v2: Int, v4: Int, v6: Int, v8: Int, v10: Int, v12: Int, v14: Int, v16: Int, v18: Int) {
+class GSItem(val fileOffset: Int, v0: Int, v2: Int, v4: Int, v6: Int, v8: Int, v10: Int) {
     val val0Prop = SimpleStringProperty(v0.toString())
     val val2Prop = SimpleStringProperty(v2.toString())
     val val4Prop = SimpleStringProperty(v4.toString())
     val val6Prop = SimpleStringProperty(v6.toString())
     val val8Prop = SimpleStringProperty(v8.toString())
     val val10Prop = SimpleStringProperty(v10.toString())
-    val val12Prop = SimpleStringProperty(v12.toString())
-    val val14Prop = SimpleStringProperty(v14.toString())
-    val val16Prop = SimpleStringProperty(v16.toString())
-    val val18Prop = SimpleStringProperty(v18.toString())
 }
 
 // ========================================================
-// 2. CONTROLLER ĐỌC/GHI TRỰC TIẾP BYTE
+// 2. CONTROLLER THÔNG MINH (Chỉ tìm và đè đúng 12 Byte, không làm hỏng cấu trúc)
 // ========================================================
 class GSTabController : Controller() {
     val items = FXCollections.observableArrayList<GSItem>()
+    var originalBytes: ByteArray = ByteArray(0)
 
     fun loadData(file: File) {
-        val bytes = file.readBytes()
-        val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+        originalBytes = file.readBytes()
         val tempList = mutableListOf<GSItem>()
         
-        while (buffer.remaining() >= 20) {
-            val v0 = buffer.short.toInt() and 0xFFFF
-            val v2 = buffer.short.toInt() and 0xFFFF
-            val v4 = buffer.short.toInt() and 0xFFFF
-            val v6 = buffer.short.toInt() and 0xFFFF
-            val v8 = buffer.short.toInt() and 0xFFFF
-            val v10 = buffer.short.toInt() and 0xFFFF
-            val v12 = buffer.short.toInt() and 0xFFFF
-            val v14 = buffer.short.toInt() and 0xFFFF
-            val v16 = buffer.short.toInt() and 0xFFFF
-            val v18 = buffer.short.toInt() and 0xFFFF
-            
-            // Chỉ hiển thị các món đồ có Data (Loại bỏ khoảng trống)
-            if (v0 != 0 || v2 != 0) {
-                tempList.add(GSItem(v0, v2, v4, v6, v8, v10, v12, v14, v16, v18))
+        // Quét toàn bộ file để tìm chữ ký A5 C9 (Bắt đầu 1 món đồ)
+        for (i in 0 until originalBytes.size - 11) {
+            if (originalBytes[i] == 0xA5.toByte() && originalBytes[i+1] == 0xC9.toByte()) {
+                // Cắt đúng 12 Byte ra để đọc
+                val buffer = ByteBuffer.wrap(originalBytes, i, 12).order(ByteOrder.LITTLE_ENDIAN)
+                val v0 = buffer.short.toInt() and 0xFFFF
+                val v2 = buffer.short.toInt() and 0xFFFF
+                val v4 = buffer.short.toInt() and 0xFFFF
+                val v6 = buffer.short.toInt() and 0xFFFF
+                val v8 = buffer.short.toInt() and 0xFFFF
+                val v10 = buffer.short.toInt() and 0xFFFF
+                
+                tempList.add(GSItem(i, v0, v2, v4, v6, v8, v10))
             }
         }
         
@@ -61,21 +55,22 @@ class GSTabController : Controller() {
     }
 
     fun saveData(file: File) {
-        val buffer = ByteBuffer.allocate(items.size * 20).order(ByteOrder.LITTLE_ENDIAN)
+        // Copy lại file gốc, chỉ đè vào những chỗ đã sửa
+        val outBytes = originalBytes.clone()
+        
         for (item in items) {
-            // Tự động chuyển từ String trên UI về lại số Short để ghi vào File (Nếu rỗng thì tự gán = 0)
+            val buffer = ByteBuffer.allocate(12).order(ByteOrder.LITTLE_ENDIAN)
             buffer.putShort((item.val0Prop.value?.toIntOrNull() ?: 0).toShort())
             buffer.putShort((item.val2Prop.value?.toIntOrNull() ?: 0).toShort())
             buffer.putShort((item.val4Prop.value?.toIntOrNull() ?: 0).toShort())
             buffer.putShort((item.val6Prop.value?.toIntOrNull() ?: 0).toShort())
             buffer.putShort((item.val8Prop.value?.toIntOrNull() ?: 0).toShort())
             buffer.putShort((item.val10Prop.value?.toIntOrNull() ?: 0).toShort())
-            buffer.putShort((item.val12Prop.value?.toIntOrNull() ?: 0).toShort())
-            buffer.putShort((item.val14Prop.value?.toIntOrNull() ?: 0).toShort())
-            buffer.putShort((item.val16Prop.value?.toIntOrNull() ?: 0).toShort())
-            buffer.putShort((item.val18Prop.value?.toIntOrNull() ?: 0).toShort())
+            
+            // Ghi đè 12 byte mới vào đúng tọa độ gốc của file
+            System.arraycopy(buffer.array(), 0, outBytes, item.fileOffset, 12)
         }
-        file.writeBytes(buffer.array())
+        file.writeBytes(outBytes)
     }
 }
 
@@ -117,17 +112,12 @@ class GSTabView : View("Shop Point (GS.dat)") {
             isEditable = true
             columnResizePolicy = SmartResize.POLICY
             
-            // Bây giờ Property là String nên TornadoFX sẽ tự động hiển thị TextBox chỉnh sửa
-            column("Offset 0 (Item ID)", GSItem::val0Prop).makeEditable()
-            column("Offset 2", GSItem::val2Prop).makeEditable()
-            column("Offset 4", GSItem::val4Prop).makeEditable()
-            column("Offset 6", GSItem::val6Prop).makeEditable()
-            column("Offset 8", GSItem::val8Prop).makeEditable()
-            column("Offset 10", GSItem::val10Prop).makeEditable()
-            column("Offset 12", GSItem::val12Prop).makeEditable()
-            column("Offset 14", GSItem::val14Prop).makeEditable()
-            column("Offset 16 (Số lượng)", GSItem::val16Prop).makeEditable()
-            column("Offset 18", GSItem::val18Prop).makeEditable()
+            column("Offset 0 (Header)", GSItem::val0Prop).makeEditable()
+            column("Offset 2 (Index)", GSItem::val2Prop).makeEditable()
+            column("Offset 4 (Item Code)", GSItem::val4Prop).makeEditable()
+            column("Offset 6 (Unknown)", GSItem::val6Prop).makeEditable()
+            column("Offset 8 (Price Code)", GSItem::val8Prop).makeEditable()
+            column("Offset 10 (Số lượng)", GSItem::val10Prop).makeEditable()
         }
     }
 }
