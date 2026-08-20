@@ -427,6 +427,48 @@ class ShopItem(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.f
         }
 }
 
+class GSItem(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("Big5")) : TSModel(byteData, itemSize, charset) {
+
+    // CHÚ Ý: Đây là các offset (vị trí byte) giả định.
+    // Tùy phiên bản TS, vị trí này có thể xê dịch hoặc bị mã hóa XOR.
+    var itemIdVal: Int
+        get() = readShort(0)  // Giả định ItemID nằm ở 2 byte đầu
+        set(value) = saveShort(value, 0)
+
+    var priceVal: Int
+        get() = readShort(2)  // Giả định Giá tiền (Price) nằm ở 2 byte tiếp theo
+        set(value) = saveShort(value, 2)
+
+    var stockVal: Int
+        get() = readByte(4).toInt() // Giả định Số lượng (Stock) nằm ở byte thứ 4
+        set(value) = saveByte(value, 4)
+
+    init {
+        id = itemIdVal
+    }
+
+    override fun saveId(newId: Int) {
+        itemIdVal = newId
+        id = newId
+    }
+
+    // Cú lừa UI số 1: Mượn cột "Name" để hiển thị và sửa Giá Tiền
+    override var name: String
+        get() = priceVal.toString() + " "
+        set(value) {
+            val parsed = value.trim().toIntOrNull() ?: 0
+            priceVal = parsed
+        }
+
+    // Cú lừa UI số 2: Mượn cột "Description" để hiển thị và sửa Số Lượng (Stock)
+    override var description: String
+        get() = stockVal.toString() + " "
+        set(value) {
+            val parsed = value.trim().toIntOrNull() ?: 0
+            stockVal = parsed
+        }
+}
+
 private val HEX_CHARS = "0123456789ABCDEF".toCharArray()
 
 fun Byte.toPositiveInt() = toShort() and 0xFF
