@@ -1,7 +1,7 @@
 package vn.jupiter.tsdata.view
 
 import javafx.application.Platform
-import javafx.beans.property.SimpleIntegerProperty
+import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.geometry.Pos
 import tornadofx.*
@@ -10,45 +10,25 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 // ========================================================
-// 1. MODEL ĐỘC LẬP (Đã fix Property)
+// 1. MODEL ĐỘC LẬP (Ép dùng StringProperty để UI cho phép Edit mượt mà)
 // ========================================================
 class GSItem(v0: Int, v2: Int, v4: Int, v6: Int, v8: Int, v10: Int, v12: Int, v14: Int, v16: Int, v18: Int) {
-    val val0Prop = SimpleIntegerProperty(v0)
-    var val0 by val0Prop
-
-    val val2Prop = SimpleIntegerProperty(v2)
-    var val2 by val2Prop
-
-    val val4Prop = SimpleIntegerProperty(v4)
-    var val4 by val4Prop
-
-    val val6Prop = SimpleIntegerProperty(v6)
-    var val6 by val6Prop
-
-    val val8Prop = SimpleIntegerProperty(v8)
-    var val8 by val8Prop
-
-    val val10Prop = SimpleIntegerProperty(v10)
-    var val10 by val10Prop
-
-    val val12Prop = SimpleIntegerProperty(v12)
-    var val12 by val12Prop
-
-    val val14Prop = SimpleIntegerProperty(v14)
-    var val14 by val14Prop
-
-    val val16Prop = SimpleIntegerProperty(v16)
-    var val16 by val16Prop
-
-    val val18Prop = SimpleIntegerProperty(v18)
-    var val18 by val18Prop
+    val val0Prop = SimpleStringProperty(v0.toString())
+    val val2Prop = SimpleStringProperty(v2.toString())
+    val val4Prop = SimpleStringProperty(v4.toString())
+    val val6Prop = SimpleStringProperty(v6.toString())
+    val val8Prop = SimpleStringProperty(v8.toString())
+    val val10Prop = SimpleStringProperty(v10.toString())
+    val val12Prop = SimpleStringProperty(v12.toString())
+    val val14Prop = SimpleStringProperty(v14.toString())
+    val val16Prop = SimpleStringProperty(v16.toString())
+    val val18Prop = SimpleStringProperty(v18.toString())
 }
 
 // ========================================================
 // 2. CONTROLLER ĐỌC/GHI TRỰC TIẾP BYTE
 // ========================================================
 class GSTabController : Controller() {
-    // FIX 1: Dùng chuẩn gốc của JavaFX thay vì hàm rút gọn của TornadoFX
     val items = FXCollections.observableArrayList<GSItem>()
 
     fun loadData(file: File) {
@@ -68,12 +48,12 @@ class GSTabController : Controller() {
             val v16 = buffer.short.toInt() and 0xFFFF
             val v18 = buffer.short.toInt() and 0xFFFF
             
+            // Chỉ hiển thị các món đồ có Data (Loại bỏ khoảng trống)
             if (v0 != 0 || v2 != 0) {
                 tempList.add(GSItem(v0, v2, v4, v6, v8, v10, v12, v14, v16, v18))
             }
         }
         
-        // FIX 2: Dùng Platform.runLater chuẩn của JavaFX
         Platform.runLater {
             items.clear()
             items.addAll(tempList)
@@ -83,16 +63,17 @@ class GSTabController : Controller() {
     fun saveData(file: File) {
         val buffer = ByteBuffer.allocate(items.size * 20).order(ByteOrder.LITTLE_ENDIAN)
         for (item in items) {
-            buffer.putShort(item.val0.toShort())
-            buffer.putShort(item.val2.toShort())
-            buffer.putShort(item.val4.toShort())
-            buffer.putShort(item.val6.toShort())
-            buffer.putShort(item.val8.toShort())
-            buffer.putShort(item.val10.toShort())
-            buffer.putShort(item.val12.toShort())
-            buffer.putShort(item.val14.toShort())
-            buffer.putShort(item.val16.toShort())
-            buffer.putShort(item.val18.toShort())
+            // Tự động chuyển từ String trên UI về lại số Short để ghi vào File (Nếu rỗng thì tự gán = 0)
+            buffer.putShort((item.val0Prop.value?.toIntOrNull() ?: 0).toShort())
+            buffer.putShort((item.val2Prop.value?.toIntOrNull() ?: 0).toShort())
+            buffer.putShort((item.val4Prop.value?.toIntOrNull() ?: 0).toShort())
+            buffer.putShort((item.val6Prop.value?.toIntOrNull() ?: 0).toShort())
+            buffer.putShort((item.val8Prop.value?.toIntOrNull() ?: 0).toShort())
+            buffer.putShort((item.val10Prop.value?.toIntOrNull() ?: 0).toShort())
+            buffer.putShort((item.val12Prop.value?.toIntOrNull() ?: 0).toShort())
+            buffer.putShort((item.val14Prop.value?.toIntOrNull() ?: 0).toShort())
+            buffer.putShort((item.val16Prop.value?.toIntOrNull() ?: 0).toShort())
+            buffer.putShort((item.val18Prop.value?.toIntOrNull() ?: 0).toShort())
         }
         file.writeBytes(buffer.array())
     }
@@ -132,11 +113,11 @@ class GSTabView : View("Shop Point (GS.dat)") {
             }
         }
         
-        // FIX 3: Ép cứng thẻ <GSItem> vào tableview để dập tắt lỗi Type inference
         center = tableview<GSItem>(controller.items) {
             isEditable = true
             columnResizePolicy = SmartResize.POLICY
             
+            // Bây giờ Property là String nên TornadoFX sẽ tự động hiển thị TextBox chỉnh sửa
             column("Offset 0 (Item ID)", GSItem::val0Prop).makeEditable()
             column("Offset 2", GSItem::val2Prop).makeEditable()
             column("Offset 4", GSItem::val4Prop).makeEditable()
