@@ -38,7 +38,7 @@ abstract class DataRepo<T : TSModel>(val headerSize:Int = AUTO, var itemSize:Int
             println("Identify item size $itemSize")
             var charSet = Charset.forName("Big5")
             if (filePath.contains("VH")) {
-                charSet = Charset.forName("windows-1258")
+                charSet = Charset.forName("UTF-8")
             }
             val itemArray = ByteArray(itemSize)
             while (randomAccessFile.filePointer + itemSize <= randomAccessFile.length()) {
