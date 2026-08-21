@@ -36,8 +36,12 @@ abstract class DataRepo<T : TSModel>(val headerSize:Int = AUTO, var itemSize:Int
                 randomAccessFile.seek(headerSize.toLong())
             }
             println("Identify item size $itemSize")
-            val charSet = Charset.forName("UTF-8")
-            }
+            
+            // ==========================================
+            // BẢN FIX: ÉP CỨNG CHUẨN TIẾNG VIỆT WINDOWS-1258
+            // ==========================================
+            val charSet = Charset.forName("windows-1258")
+            
             val itemArray = ByteArray(itemSize)
             while (randomAccessFile.filePointer + itemSize <= randomAccessFile.length()) {
                 randomAccessFile.readFully(itemArray)
