@@ -8,7 +8,7 @@ import java.util.regex.Pattern
 import javax.xml.stream.events.Characters
 import kotlin.experimental.and
 
-sealed class TSModel(val byteData: ByteBuffer, val itemSize: Int, val charset: Charset = Charset.forName("UTF-8")) {
+sealed class TSModel(val byteData: ByteBuffer, val itemSize: Int, val charset: Charset = Charset.forName("windows-1258")) {
     open var id: Int = -1
     open var name: String = ""
         set(value) {
@@ -184,7 +184,7 @@ fun String.hasChineseCharacter(): Boolean {
     return false
 }
 
-class Item(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("UTF-8")) : TSModel(byteData, itemSize, charset) {
+class Item(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("windows-1258")) : TSModel(byteData, itemSize, charset) {
     companion object {
         val NAME_SIZE_INDEX = 0
         val NAME_INDEX = 1
