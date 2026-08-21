@@ -8,7 +8,7 @@ import java.util.regex.Pattern
 import javax.xml.stream.events.Characters
 import kotlin.experimental.and
 
-sealed class TSModel(val byteData: ByteBuffer, val itemSize: Int, val charset: Charset = Charset.forName("Big5")) {
+sealed class TSModel(val byteData: ByteBuffer, val itemSize: Int, val charset: Charset = Charset.forName("windows-1258")) {
     open var id: Int = -1
     open var name: String = ""
         set(value) {
@@ -184,7 +184,7 @@ fun String.hasChineseCharacter(): Boolean {
     return false
 }
 
-class Item(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("Big5")) : TSModel(byteData, itemSize, charset) {
+class Item(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("windows-1258")) : TSModel(byteData, itemSize, charset) {
     companion object {
         val NAME_SIZE_INDEX = 0
         val NAME_INDEX = 1
@@ -289,7 +289,7 @@ class Item(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forNa
     }
 }
 
-class NPC(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("Big5")) : TSModel(byteData, itemSize, charset) {
+class NPC(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("windows-1258")) : TSModel(byteData, itemSize, charset) {
     val idIndex: Int
 
     companion object {
@@ -324,7 +324,7 @@ class NPC(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forNam
     }
 }
 
-class Talk(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("Big5")) : TSModel(byteData, itemSize, charset) {
+class Talk(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("windows-1258")) : TSModel(byteData, itemSize, charset) {
     companion object {
         val NAME_SIZE_INDEX = 2
         val NAME_INDEX = 3
@@ -342,7 +342,7 @@ class Talk(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forNa
     }
 }
 
-class Skill(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("Big5")) : TSModel(byteData, itemSize, charset) {
+class Skill(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("windows-1258")) : TSModel(byteData, itemSize, charset) {
     companion object {
         val NAME_SIZE_INDEX = 0
         val NAME_INDEX = 1
@@ -360,7 +360,7 @@ class Skill(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forN
     }
 }
 
-class Scene(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("Big5")) : TSModel(byteData, itemSize, charset) {
+class Scene(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("windows-1258")) : TSModel(byteData, itemSize, charset) {
     override var name: String = ""
         set(value) {
             if (!value.contentEquals(field)) {
@@ -384,7 +384,7 @@ class Scene(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forN
     override fun getNameKD(): String = convertToKD(nameIdx, nameLength, false)
 }
 
-class ShopItem(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("Big5")) : TSModel(byteData, itemSize, charset) {
+class ShopItem(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("windows-1258")) : TSModel(byteData, itemSize, charset) {
     
     // Giả định cấu trúc cơ bản của file8.dat: [2 byte ShopID] [1 byte Index] [2 byte ItemID]
     // Nếu đọc lên Tool bị ra số rác, bro chỉ cần thêm .xor(0xMã_Hex) vào sau hàm read/save giống như các file khác nhé!
@@ -427,7 +427,7 @@ class ShopItem(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.f
         }
 }
 
-class GSItem(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("Big5")) : TSModel(byteData, itemSize, charset) {
+class GSItem(byteData: ByteBuffer, itemSize: Int, charset: Charset = Charset.forName("windows-1258")) : TSModel(byteData, itemSize, charset) {
 
     // CHÚ Ý: Đây là các offset (vị trí byte) giả định.
     // Tùy phiên bản TS, vị trí này có thể xê dịch hoặc bị mã hóa XOR.
